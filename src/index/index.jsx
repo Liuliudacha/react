@@ -1,8 +1,7 @@
 import React, { Component } from 'react'
 import Head from '../head/head'
-import { DatePicker, Table, Tag, Space, message } from 'antd'
+import { DatePicker, Table, Space, message } from 'antd'
 import { work } from '../api/api'
-import Item from 'antd/lib/list/Item';
 
 const { Column } = Table;
 
@@ -12,16 +11,14 @@ export default class Index extends Component {
 		super(...arguments)
 		this.state = {
 			time : '',
-			pagination: {
-				current: 1,
-				pageSize: 10,
-				total:30,
-			},
-			data : []
+			data : [],
+			height : ''
 		}
 	}
 
 	componentWillMount(){
+		console.log(window.innerHeight )
+		this.setState({ height : window.innerHeight - 350})
 		let token = sessionStorage.getItem('token')
 		if(!token){
 			this.props.history.push('/login')
@@ -29,6 +26,8 @@ export default class Index extends Component {
 		}
 		work().then(res=>{
 			if(res.status === 200){
+				const { data } = res.data
+				data.forEach((o,idx)=>{ o.key = idx })
 				this.setState({ data : res.data.data })
 			}else{
 				message.error(res.msg)
@@ -41,6 +40,7 @@ export default class Index extends Component {
 	}
 
 	render() {
+		const { height } = this.state
 		return (
 			<div className="y_maxBoxs">
 				<Head />
@@ -72,22 +72,52 @@ export default class Index extends Component {
 						<div className="content">
 							<Table 
 								dataSource={this.state.data}
-								pagination={this.state.pagination}
-								// Key={(record, key) => {return key}}
-								rowKey={record => record.uid}
+								rowKey={(index) => index.key}
+								scroll={{ y: height }}
 							>
-								<Column title="ID" dataIndex="id" key="id" render={(item,index) => (
-									console.log(item,index)
+								<Column title="ID" dataIndex="id" width="70px" />
+								<Column title="任务来源" width="110px" dataIndex="create_user" render={(item,index) => {
+									if (index.model_type === 1005){
+										return(
+											<span>{index.create_user}</span>
+										)
+									} else {
+										return(
+											<span>微巴士派单</span>
+										)
+									}
+								}}  />
+								<Column title="类型" width="70px" dataIndex="model_type" render={(item,index) => {
+									if ( index.model_type === 1005 ) {
+										return(
+											<span>{index.route_type === 1 ? '单程' : (index.route_type === 2) ? '往返' : '单接单送' }</span>
+										)
+									} else {
+										return(
+											<span>{ index.model_type === 1004 ? '教育' : ( index.model_type === 1001 ) ? '专线' : '包车'}</span>
+										)
+									}
+								}}/>
+								<Column title="时间" dataIndex="start_time" render={(index) => <span>{index.substring(0,index.length - 3)}</span>} />
+								<Column title="起点终点" width="200px" dataIndex="model_station_start_name" render={(item,index) => <span>{index.model_station_start_name + ' - ' + index.model_station_end_name}</span>} />
+								<Column title="派单需求" dataIndex="remark" />
+								<Column title="状态" width="70px" dataIndex="bind_state" render={(item,index) => <span>{index.bind_state === 0 ? '待排班' : ( index.bind_state === 1 ) ? '待发布' : '已发布'}</span>} />
+								<Column title="操作人" width="80px" dataIndex="create_user" />
+								<Column title="所需车型" dataIndex="bus_type_name" />
+								<Column title="车型/车牌/司机" width="220px" render={(item) => (
+									<>
+										{item.bind_list.map((it,idx) => {
+											return(
+												<>
+													<span key={idx}>{it.bus_name === null ? '' : it.bus_name }{'/' + it.bus_plate + '/' + it.driver_name}</span>
+													<span  className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>更换</span>
+                                    				<span  className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>解绑</span>
+												</>
+												
+											)
+										})}
+									</>
 								)} />
-								<Column title="任务来源" dataIndex="id" key="id" />
-								<Column title="类型" dataIndex="id" key="id" />
-								<Column title="时间" dataIndex="id" key="id" />
-								<Column title="起点终点" dataIndex="id" key="id" />
-								<Column title="派单需求" dataIndex="id" key="id" />
-								<Column title="状态" dataIndex="id" key="id" />
-								<Column title="操作人" dataIndex="id" key="id" />
-								<Column title="所需车型" dataIndex="id" key="id" />
-								<Column title="车型/车牌/司机" dataIndex="id" key="id" />
 								<Column
 									title="操作"
 									key="id"
