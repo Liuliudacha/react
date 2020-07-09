@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import Head from '../head/head'
 import { DatePicker, Table, Space, message } from 'antd'
 import { work } from '../api/api'
+import  moment  from 'moment'
 
 const { Column } = Table;
 
@@ -12,19 +13,31 @@ export default class Index extends Component {
 		this.state = {
 			time : '',
 			data : [],
-			height : ''
+            height : '',
+            params : {
+                station_name : '',
+                mix_state : '',
+                date : new Date().toLocaleDateString().replace(/\//g,'-'),
+                page : '',
+                pagesize : '',
+            }
 		}
-	}
-
+    }
+    
 	componentWillMount(){
-		console.log(window.innerHeight )
-		this.setState({ height : window.innerHeight - 350})
+        console.log(this.state.params.date)
+		this.setState({ height : window.innerHeight - 290})
 		let token = sessionStorage.getItem('token')
 		if(!token){
 			this.props.history.push('/login')
 			return
 		}
-		work().then(res=>{
+		this.getList()
+    }
+    
+    // 获取列表
+    getList(){
+        work().then(res=>{
 			if(res.status === 200){
 				const { data } = res.data
 				data.forEach((o,idx)=>{ o.key = idx })
@@ -33,11 +46,18 @@ export default class Index extends Component {
 				message.error(res.msg)
 			}
 		})
-	}
+    }
 
+    // 监听日期变化
 	onChange(date, dateString){
 		this.setState({ time : dateString })
-	}
+    }
+    
+    // 监听状态筛选
+    changeStatus(pagination, filters, sorter, extra){
+        const { bind_state:[first] } = filters
+        console.log(first)
+    }
 
 	render() {
 		const { height } = this.state
@@ -56,7 +76,7 @@ export default class Index extends Component {
 								<ul>
 									<li>
 										<span>选择日期 : </span>
-										<DatePicker onChange={this.onChange.bind(this)} placeholder="选择日期" />
+										<DatePicker defaultValue={moment()} onChange={this.onChange.bind(this)} placeholder="选择日期" />
 									</li>
 									<li>
 										<span>关键字 : </span>
@@ -73,7 +93,8 @@ export default class Index extends Component {
 							<Table 
 								dataSource={this.state.data}
 								rowKey={(index) => index.key}
-								scroll={{ y: height }}
+                                scroll={{ y: height }}
+                                onChange={this.changeStatus.bind(this)}
 							>
 								<Column title="ID" dataIndex="id" width="70px" />
 								<Column title="任务来源" width="110px" dataIndex="create_user" render={(item,index) => {
@@ -99,21 +120,24 @@ export default class Index extends Component {
 									}
 								}}/>
 								<Column title="时间" dataIndex="start_time" render={(index) => <span>{index.substring(0,index.length - 3)}</span>} />
-								<Column title="起点终点" width="200px" dataIndex="model_station_start_name" render={(item,index) => <span>{index.model_station_start_name + ' - ' + index.model_station_end_name}</span>} />
+								<Column title="起点终点" width="200px" dataIndex="model_station_start_name" render={(item,index) => <span style={{ wordWrap: 'break-word', wordBreak: 'break-word' }}>{index.model_station_start_name + ' - ' + index.model_station_end_name}</span>} />
 								<Column title="派单需求" dataIndex="remark" />
-								<Column title="状态" width="70px" dataIndex="bind_state" render={(item,index) => <span>{index.bind_state === 0 ? '待排班' : ( index.bind_state === 1 ) ? '待发布' : '已发布'}</span>} />
+								<Column title="状态" filters={
+                                    [{ text: '全部', value: '0',},{text: '待发布', value: '4', },{text: '已发布', value: '2', },{text: '待排班', value: '3', }]
+                                    } width="70px" dataIndex="bind_state" render={(item,index) => <span>{index.bind_state === 0 ? '待排班' : ( index.bind_state === 1 ) ? '待发布' : '已发布'}</span>} />
 								<Column title="操作人" width="80px" dataIndex="create_user" />
 								<Column title="所需车型" dataIndex="bus_type_name" />
 								<Column title="车型/车牌/司机" width="220px" render={(item) => (
 									<>
 										{item.bind_list.map((it,idx) => {
 											return(
-												<>
-													<span key={idx}>{it.bus_name === null ? '' : it.bus_name }{'/' + it.bus_plate + '/' + it.driver_name}</span>
-													<span  className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>更换</span>
-                                    				<span  className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>解绑</span>
-												</>
-												
+												<div key={idx}>
+													<span >{it.bus_name === null ? '' : it.bus_name }{'/' + it.bus_plate + '/' + it.driver_name}</span>
+                                                    <div>
+                                                        <span className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>更换</span>
+                                    				    <span className={item.isclick === true && item.handel.changeBind === 1? 'operateButton' : 'cor66'}>解绑</span>
+                                                    </div>
+												</div>
 											)
 										})}
 									</>
