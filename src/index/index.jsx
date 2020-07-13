@@ -21,11 +21,10 @@ export default class Index extends Component {
                 page : '',
                 pagesize : '',
             }
-		}
+        }
     }
     
 	componentWillMount(){
-        console.log(this.state.params.date)
 		this.setState({ height : window.innerHeight - 290})
 		let token = sessionStorage.getItem('token')
 		if(!token){
@@ -48,6 +47,10 @@ export default class Index extends Component {
 		})
     }
 
+    search(){
+        console.log(this.state.params.station_name)
+    }
+
     // 监听日期变化
 	onChange(date, dateString){
 		this.setState({ time : dateString })
@@ -57,6 +60,20 @@ export default class Index extends Component {
     changeStatus(pagination, filters, sorter, extra){
         const { bind_state:[first] } = filters
         console.log(first)
+    }
+
+    selectedRowKeys(scope){
+        console.log(scope)
+    }
+
+    station(event){
+        event.persist()
+        this.setState({ params : {
+            ...this.state.params,
+            station_name : event.target.value
+        } },()=>{
+            console.log(this.state.params.station_name)
+        })
     }
 
 	render() {
@@ -80,10 +97,10 @@ export default class Index extends Component {
 									</li>
 									<li>
 										<span>关键字 : </span>
-										<input type="text" placeholder="起点/终点名称" className="keyword" />
+										<input type="text" onChange={(event)=>this.station(event)} placeholder="起点/终点名称" className="keyword" />
 									</li>
 									<li>
-										<div className="search" >搜索</div>
+										<div className="search" onClick={this.search.bind(this)} >搜索</div>
 									</li>
 								</ul>
 							</div>
@@ -95,6 +112,7 @@ export default class Index extends Component {
 								rowKey={(index) => index.key}
                                 scroll={{ y: height }}
                                 onChange={this.changeStatus.bind(this)}
+                                selectedRowKeys={this.selectedRowKeys.bind(this)}
 							>
 								<Column title="ID" dataIndex="id" width="70px" />
 								<Column title="任务来源" width="110px" dataIndex="create_user" render={(item,index) => {
